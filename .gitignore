@@ -1,0 +1,38 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.egg-info/
+build/
+dist/
+wheels/
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Environment variables (contains secrets)
+.env
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+redis_data/
+
+# Lock files (generated)
+uv.lock
+.gstack/
+
+# Test reports (generated)
+tests/reports/
+.passed/
+.claude/passed/

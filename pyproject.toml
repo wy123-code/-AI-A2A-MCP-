@@ -1,0 +1,23 @@
+[project]
+name = "tourism-assistant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "celery>=5.6.3",
+    "dashscope>=1.25.18",
+    "fastapi>=0.115.6",
+    "langgraph>=0.2.0",
+    "loguru>=0.7.3",
+    "mysql-connector-python>=9.0.0",
+    "openai>=2.35.0",
+    "pydantic>=2.10.0",
+    "pymilvus>=2.4.0",
+    "pymysql>=1.1.0",
+    "python-dotenv>=1.0.0",
+    "redis>=7.0.0",
+    "requests>=2.32.0",
+    "sqlalchemy>=2.0.0",
+    "uvicorn>=0.34.0",
+]

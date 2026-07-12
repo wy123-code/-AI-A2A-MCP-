@@ -1,0 +1,221 @@
+services:
+  # ==================== MySQL 8.0 ====================
+  mysql:
+    image: mysql:8.0
+    container_name: tourism-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tourism123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-Tourism}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-tourism123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tourism-net
+
+  # ==================== Milvus 向量数据库 (Standalone) ====================
+  milvus:
+    image: milvusdb/milvus:v2.4.0
+    container_name: tourism-milvus
+    command: ["milvus", "run", "standalone"]
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      COMMON_STORAGETYPE: local
+    volumes:
+      - milvus_data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - tourism-net
+
+  # ==================== Redis 7.2 ====================
+  redis:
+    image: redis:7.2
+    container_name: tourism-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tourism-net
+
+  # ==================== FastAPI Web 服务 ====================
+  web:
+    build: .
+    container_name: tourism-web
+    ports:
+      - "8000:8000"
+    environment:
+      SERVICE: web
+      APP_API_KEY: ${APP_API_KEY}
+      BASE_URL: ${BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      INTENT_MODEL: ${INTENT_MODEL:-qwen3-max}
+      LLM_MODEL: ${LLM_MODEL:-qwen-turbo}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tourism123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-Tourism}
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_DB: ${MILVUS_DB:-itcast}
+      MILVUS_COLLECTION: ${MILVUS_COLLECTION:-tourism_attractions}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: "0"
+      REDIS_PASSWORD: ""
+      CELERY_REDIS_DB: "1"
+      WEATHER_API_KEY: ${WEATHER_API_KEY}
+      WEATHER_API_BASE_URL: ${WEATHER_API_BASE_URL:-https://n63qqt6pg5.re.qweatherapi.com}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tourism-net
+
+  # ==================== Celery Worker ====================
+  worker:
+    build: .
+    container_name: tourism-worker
+    environment:
+      SERVICE: worker
+      APP_API_KEY: ${APP_API_KEY}
+      BASE_URL: ${BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      INTENT_MODEL: ${INTENT_MODEL:-qwen3-max}
+      LLM_MODEL: ${LLM_MODEL:-qwen-turbo}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tourism123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-Tourism}
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_DB: ${MILVUS_DB:-itcast}
+      MILVUS_COLLECTION: ${MILVUS_COLLECTION:-tourism_attractions}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: "0"
+      REDIS_PASSWORD: ""
+      CELERY_REDIS_DB: "1"
+      WEATHER_API_KEY: ${WEATHER_API_KEY}
+      WEATHER_API_BASE_URL: ${WEATHER_API_BASE_URL:-https://n63qqt6pg5.re.qweatherapi.com}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tourism-net
+
+  # ==================== Celery Beat 定时调度 ====================
+  beat:
+    build: .
+    container_name: tourism-beat
+    environment:
+      SERVICE: beat
+      APP_API_KEY: ${APP_API_KEY}
+      BASE_URL: ${BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      INTENT_MODEL: ${INTENT_MODEL:-qwen3-max}
+      LLM_MODEL: ${LLM_MODEL:-qwen-turbo}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tourism123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-Tourism}
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_DB: ${MILVUS_DB:-itcast}
+      MILVUS_COLLECTION: ${MILVUS_COLLECTION:-tourism_attractions}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: "0"
+      REDIS_PASSWORD: ""
+      CELERY_REDIS_DB: "1"
+      WEATHER_API_KEY: ${WEATHER_API_KEY}
+      WEATHER_API_BASE_URL: ${WEATHER_API_BASE_URL:-https://n63qqt6pg5.re.qweatherapi.com}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tourism-net
+
+  # ==================== Memory Agent（独立部署） ====================
+  # Memory Agent 可独立于主应用部署，通过 Redis PubSub（MCP 协议）通信。
+  # 支持水平扩展（可启动多个实例），负责短期记忆、用户偏好、对话历史等记忆操作。
+  # 主应用在 Memory Agent 不可用时自动降级为直接调用 MemoryService。
+  memory-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.memory
+    container_name: tourism-memory-agent
+    environment:
+      APP_API_KEY: ${APP_API_KEY}
+      BASE_URL: ${BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      INTENT_MODEL: ${INTENT_MODEL:-qwen3-max}
+      LLM_MODEL: ${LLM_MODEL:-qwen-turbo}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tourism123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-Tourism}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: "0"
+      REDIS_PASSWORD: ""
+      CELERY_REDIS_DB: "1"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tourism-net
+    # 可水平扩展
+    deploy:
+      replicas: 1
+
+# ==================== 持久化卷 ====================
+volumes:
+  mysql_data:
+  milvus_data:
+  redis_data:
+
+# ==================== 内部网络 ====================
+networks:
+  tourism-net:
+    driver: bridge

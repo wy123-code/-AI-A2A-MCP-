@@ -1,0 +1,30 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 配置国内 PyPI 镜像加速
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+    && pip config set global.trusted-host mirrors.aliyun.com
+
+# 安装 uv
+RUN pip install uv --no-cache-dir
+
+# 先复制依赖文件，利用 Docker 层缓存
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-cache --index-url https://mirrors.aliyun.com/pypi/simple/
+
+# 复制源码
+COPY . .
+
+# 创建非 root 用户
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Memory Agent 不需要暴露 HTTP 端口（仅通过 Redis PubSub 通信）
+# 但可暴露一个简单的健康检查端口
+EXPOSE 8001
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+    CMD python -c "import redis; r=redis.Redis(host='${REDIS_HOST:-localhost}',port=${REDIS_PORT:-6379},db=${REDIS_DB:-0}); r.ping()" || exit 1
+
+ENTRYPOINT ["python", "memory_agent_main.py"]

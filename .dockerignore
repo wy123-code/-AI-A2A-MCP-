@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment (production .env is passed via docker-compose)
+.env
+.env.local
+
+# Logs & diagnostics
+*.log
+*diag_*.txt
+
+# Data dumps
+*.csv
+*.json
+!pyproject.toml
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests (not needed in production image)
+tests/
+
+# Documentation
+*.md
+*.png
+*.html
+
+# Temporary files
+redis_data/
+_counts.json

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅游助手 Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>🌍 旅游助手</h2>
+            <button class="btn-icon" id="sidebarToggle" title="收起侧边栏">☰</button>
+        </div>
+
+        <!-- 用户区域 -->
+        <div class="user-section" id="userSection">
+            <div class="user-avatar" id="userAvatar">👤</div>
+            <div class="user-info">
+                <span class="user-name" id="userName">未登录</span>
+                <span class="user-status" id="userStatus">游客模式</span>
+            </div>
+        </div>
+
+        <!-- 登录/注册按钮 -->
+        <button class="btn-sm btn-outline" id="toggleLoginBtn" onclick="showAuthModal()">
+            <span id="loginBtnText">登录 / 注册</span>
+        </button>
+
+        <!-- 新建会话 -->
+        <button class="btn-new-session" onclick="newSession()">+ 新建会话</button>
+
+        <!-- 会话列表 -->
+        <div class="session-list" id="sessionList">
+            <div class="session-item active" data-session="default">
+                <span class="session-icon">💬</span>
+                <span class="session-title">默认会话</span>
+            </div>
+        </div>
+
+        <!-- 偏好设置面板 -->
+        <div class="preferences-panel" id="preferencesPanel">
+            <h4>⚙️ 我的偏好</h4>
+            <div id="preferencesList">
+                <p class="text-muted">登录后可查看偏好设置</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主聊天区域 -->
+    <main class="main-content">
+        <!-- 顶部栏 -->
+        <header class="chat-header">
+            <h3 id="chatTitle">旅游助手</h3>
+            <div class="header-actions">
+                <span class="status-badge" id="statusBadge">🟢 在线</span>
+            </div>
+        </header>
+
+        <!-- 消息列表 -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <div class="welcome-icon">🌍</div>
+                <h2>欢迎使用旅游助手</h2>
+                <p>我可以帮您查询机票、火车票、酒店、天气、旅行团、租车、保险，以及推荐旅游景点。</p>
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="sendQuick('帮我查北京到上海的机票')">✈️ 查机票</button>
+                    <button class="quick-btn" onclick="sendQuick('三亚今天天气怎么样')">🌤️ 查天气</button>
+                    <button class="quick-btn" onclick="sendQuick('推荐成都的景点')">🏔️ 景点推荐</button>
+                    <button class="quick-btn" onclick="sendQuick('帮我查北京的酒店')">🏨 查酒店</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="chat-input-area">
+            <div class="input-container">
+                <textarea
+                    id="chatInput"
+                    placeholder="输入您的旅游需求... (Enter 发送，Shift+Enter 换行)"
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                ></textarea>
+                <button class="btn-send" id="sendBtn" onclick="sendMessage()" title="发送">
+                    ➤
+                </button>
+            </div>
+            <div class="input-hint">
+                <span>支持：机票 · 火车票 · 酒店 · 天气 · 旅行团 · 租车 · 保险 · 景点推荐</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 详情面板（右侧） -->
+    <aside class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <h4>📋 对话详情</h4>
+            <button class="btn-icon" onclick="toggleDetailPanel()">✕</button>
+        </div>
+        <div class="detail-content" id="detailContent">
+            <p class="text-muted">选择一条消息查看详情</p>
+        </div>
+    </aside>
+
+    <!-- 登录/注册弹窗 -->
+    <div class="modal-overlay" id="authModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</button>
+                    <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</button>
+                </div>
+                <button class="modal-close" onclick="hideAuthModal()">✕</button>
+            </div>
+
+            <!-- 登录表单 -->
+            <form class="auth-form" id="loginFormPanel" onsubmit="doLogin(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" required autocomplete="current-password">
+                </div>
+                <div class="form-error" id="loginError"></div>
+                <button type="submit" class="btn-auth">登 录</button>
+            </form>
+
+            <!-- 注册表单 -->
+            <form class="auth-form" id="registerFormPanel" style="display:none;" onsubmit="doRegister(event)">
+                <div class="form-group">
+                    <label>用户名 <span class="required">*</span></label>
+                    <input type="text" id="regUsername" placeholder="至少2个字符" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>昵称</label>
+                    <input type="text" id="regNickname" placeholder="选填，默认同用户名">
+                </div>
+                <div class="form-group">
+                    <label>密码 <span class="required">*</span></label>
+                    <input type="password" id="regPassword" placeholder="至少6位字符" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>确认密码 <span class="required">*</span></label>
+                    <input type="password" id="regPasswordConfirm" placeholder="再次输入密码" required autocomplete="new-password">
+                </div>
+                <div class="form-error" id="regError"></div>
+                <button type="submit" class="btn-auth">注 册</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>
